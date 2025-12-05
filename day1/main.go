@@ -44,7 +44,7 @@ func main() {
 			num -= rotation
 		}
 
-		num = (num % 100 + 100) % 100
+		num = num % 100
 
 		if num == 0 {
 			res ++
