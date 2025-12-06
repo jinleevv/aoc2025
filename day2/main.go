@@ -93,7 +93,12 @@ func main() {
 	defer file.Close()
 
 	part1(file)
+	
 	// make sure you start from the beginning
-	file.Seek(0, 0)
+	_, err = file.Seek(0, 0)
+    if err != nil {
+        log.Fatal(err)
+    }
+
 	part2(file)
 }
