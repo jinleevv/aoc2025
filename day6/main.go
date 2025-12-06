@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-type Block struct {
+type Operation struct {
 	start, end int
 }
 
