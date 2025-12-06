@@ -48,20 +48,14 @@ func part1(file *os.File) {
 	fmt.Println("Part 1 answer:", res)
 }
 
-func collectDigits(matrix [][]string, row int, col int, digit int, length int, maxLength int) int {
+func collectDigits(matrix []string, row, col int) int {
 	returnNum := ""
-
-	for i := 0; i < row - 1; i++ {
-		// fmt.Println("digit:", digit)
-		if len(matrix[i][col]) >= length {
-			difference := maxLength - len(matrix[i][col])
-			accessDigit := digit - difference
-			curNum := matrix[i][col][accessDigit]
-			returnNum = returnNum + string(curNum)
+	for r := 0; r < row - 1; r++ {
+		if matrix[r][col] != ' ' {
+			returnNum += string(matrix[r][col])
 		}
 	}
 
-	fmt.Println("returnNum:", returnNum)
 	if returnNum == "" {
         return 0
     }
@@ -70,59 +64,90 @@ func collectDigits(matrix [][]string, row int, col int, digit int, length int, m
 	return res
 }
 
-// func part2(file *os.File) {
-// 	var matrix []string
-// 	scanner := bufio.NewScanner(file)
+func solveOperation(matrix []string, start int, end int) int {
+	ROWS := len(matrix)
+	// find operation
+	operator := "+"
+	for c := start; c <= end; c++ {
+		findOperator := matrix[ROWS - 1][c]
+		if findOperator == '+' || findOperator == '*' {
+			operator = string(findOperator)
+			break
+		}
+	}
 
-// 	for scanner.Scan() {
-// 		line := scanner.Text()
-// 		matrix = append(matrix, line)
-// 	}
-// 	ROWS := len(matrix)
-// 	COLS := len(matrix[0])
+	curSum := 0
+	for c := end; c >= start; c-- {
+		digits := collectDigits(matrix, ROWS, c)
+		switch operator {
+			case "+":
+				curSum += digits 
+			case "*":
+				if curSum == 0 {
+					curSum = digits
+				} else{
+					curSum *= digits
+				}
+		}
+	}
+	return curSum
+}
 
-// 	res := 0
-// 	// you need to collect the digits
-// 	for i := 0; i < COLS; i++ {
-// 		curSum := 0
-// 		operation := matrix[ROWS - 1][i]
-// 		// collect the max length of the number 
-// 		maxLength := 0
-// 		for j := 0; j < ROWS - 1; j++ {
-// 			maxLength = max(maxLength, len(matrix[j][i]))
-// 		}
-// 		// sum/multiply up all the numbers in the column
-// 		for k := 0 ; k < maxLength; k++ {
-// 			val := collectDigits(matrix, ROWS, i, k, maxLength - k, maxLength) 
-// 			switch operation {
-// 				case "+":
-// 					curSum += val
-// 				case "*":
-// 					if curSum == 0 {
-// 						curSum = val
-// 					} else{
-// 						curSum *= val
-// 					}
-// 			}
-// 		}
-// 		fmt.Println("curSum:", curSum)
-// 		res += curSum
-// 	}
-// 	fmt.Println("Part 2 answer:", res)
-// }
+func part2(file *os.File) {
+	var matrix []string
+	scanner := bufio.NewScanner(file)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		matrix = append(matrix, line)
+	}
+	ROWS := len(matrix)
+	COLS := len(matrix[0])
+
+	res := 0
+
+	// seperate the each operations
+	operationStart := 0
+	var operations []Operation
+	for c := 0; c < COLS; c++ {
+		seperator := true
+		for r := 0; r < ROWS; r++ {
+			if matrix[r][c] != ' ' {
+				seperator = false
+			}
+		}
+
+		if seperator && c > operationStart {
+			operations = append(operations, Operation{operationStart, c - 1})
+			operationStart = c + 1
+		}
+	}
+
+	if operationStart < COLS {
+		operations = append(operations, Operation{operationStart, COLS - 1})
+	}
+
+	for i := len(operations) - 1; i >= 0; i-- {
+		val := solveOperation(matrix, operations[i].start, operations[i].end)
+		res += val
+	}
+	
+	
+	fmt.Println("Part 2 answer:", res)
+}
 
 func main() {
-	file, err := os.Open("testCase.txt")
+	file, err := os.Open("data.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	part1(file)
 
-	// _, err = file.Seek(0, 0)
-    // if err != nil {
-    //     log.Fatal(err)
-    // }
+	_, err = file.Seek(0, 0)
+    if err != nil {
+        log.Fatal(err)
+    }
 	
-	// part2(file)
+	part2(file)
 }
