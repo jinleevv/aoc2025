@@ -7,6 +7,7 @@ import (
 	"math"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -61,7 +62,72 @@ func dist(p1, p2 Point) float64 {
 }
 
 func part1(file *os.File) int {
-	return 1
+	var points []Point
+	var edges []Connection
+	var sizes []int
+
+	scanner := bufio.NewScanner(file)
+	// create an array with its position
+	for scanner.Scan() {
+		line := scanner.Text()
+		position := strings.Split(line, ",")
+
+		x, _ := strconv.Atoi(strings.TrimSpace(position[0]))
+		y, _ := strconv.Atoi(strings.TrimSpace(position[1]))
+		z, _ := strconv.Atoi(strings.TrimSpace(position[2]))
+
+		points = append(points, Point{x, y, z})
+	}
+
+	// create an array with its distance calculated
+	for i := 0; i < len(points); i++ {
+		for j := i + 1; j < len(points); j++ {
+			dist := dist(points[i], points[j])
+			edges = append(edges, Connection{a: i, b: j, dist: dist})
+		}
+	}
+
+	// sort the edges
+	sort.Slice(edges, func(i int, j int) bool {
+		return edges[i].dist < edges[j].dist
+	})
+
+	// start Union Find logic
+	uf := newUnionFind(len(points))
+
+	limit := 1000
+
+	// 1000 closest points are merged
+	for i := 0; i < limit; i++ {
+		edge := edges[i]
+		uf.Union(edge.a, edge.b)
+	}
+
+	// update the size
+	for i := 0; i < len(points); i++ {
+		if uf.parent[i] == i {
+			sizes = append(sizes, uf.size[i])
+		}
+	}
+
+	// sort the sizes
+	sort.Slice(sizes, func(i int, j int) bool {
+		return sizes[i] > sizes[j]
+	})
+
+	res := 1
+	count := 0
+	for _, s := range sizes {
+		res *= s
+		count++
+		// count largest 3
+		if count == 3 {
+			break
+		}
+	}
+
+
+	return res
 }
 
 func part2(file *os.File) int {
@@ -69,7 +135,7 @@ func part2(file *os.File) int {
 }
 
 func main() {
-	file, err := os.Open("testCase.txt")
+	file, err := os.Open("data.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
