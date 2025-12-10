@@ -131,7 +131,58 @@ func part1(file *os.File) int {
 }
 
 func part2(file *os.File) int {
-	return 1
+	var points []Point
+	var edges []Connection
+
+	scanner := bufio.NewScanner(file)
+	// create an array with its position
+	for scanner.Scan() {
+		line := scanner.Text()
+		position := strings.Split(line, ",")
+
+		x, _ := strconv.Atoi(strings.TrimSpace(position[0]))
+		y, _ := strconv.Atoi(strings.TrimSpace(position[1]))
+		z, _ := strconv.Atoi(strings.TrimSpace(position[2]))
+
+		points = append(points, Point{x, y, z})
+	}
+
+	// create an array with its distance calculated
+	for i := 0; i < len(points); i++ {
+		for j := i + 1; j < len(points); j++ {
+			dist := dist(points[i], points[j])
+			edges = append(edges, Connection{a: i, b: j, dist: dist})
+		}
+	}
+
+	// sort the edges
+	sort.Slice(edges, func(i int, j int) bool {
+		return edges[i].dist < edges[j].dist
+	})
+
+	// start Union Find logic
+	uf := newUnionFind(len(points))
+
+	limit := len(points)
+
+	for _, edge := range edges {
+		rootA := uf.Find(edge.a)
+		rootB := uf.Find(edge.b)
+
+		if rootA != rootB {
+			uf.Union(edge.a, edge.b)
+			limit--
+			if limit == 1 {
+				x1 := points[edge.a].x
+				x2 := points[edge.b].x
+
+				return x1 * x2
+			}
+		}
+	}
+
+
+	return 0
 }
 
 func main() {
