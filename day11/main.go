@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -54,69 +55,106 @@ func solvePart1(file *os.File) int {
 	return dfs("you", paths, visited)
 }
 
-// func cacheKey(current string, visited map[string]bool, dac bool, fft bool) string {
-// 	keys := make([]string, 0, len(visited))
 
-// 	for key, value := range visited {
-// 		if value {
-// 			keys = append(keys, key)
-// 		}
-// 	}
+var strToID map[string]int
+var nextID int
 
-// 	sort.Strings(keys)
-// 	visitedStr := strings.Join(keys, ",")
+func getID(s string) int {
+	if id, exists := strToID[s]; exists {
+		return id
+	}
+	id := nextID
+	nextID++
+	strToID[s] = id
+	return id
+}
 
-// 	return fmt.Sprintf("%s|%s|%t|%t", current, visitedStr, dac, fft)
-// }
+var memo [][]int
 
-// var memo = make(map[string]int)
-// func dfs2(start string, paths map[string][]string, visited map[string]bool, dacStatus bool, fftStatus bool) int {
-// 	stateKey := cacheKey(start, visited, dacStatus, fftStatus)
-// 	if val, ok := memo[stateKey]; ok {
-// 		return val
-// 	}
+const (
+	MaskNone = 0
+	MaskDAC  = 1
+	MaskFFT  = 2
+	MaskBoth = 3
+)
 
-// 	numPath := 0
+func countPaths(u int, mask int, graph [][]int, outID, dacID, fftID int) int {
+	if val := memo[u][mask]; val != -1 {
+		return val
+	}
 
-// 	if start == "out" && dacStatus && fftStatus {
-// 		return 1
-// 	}
+	if u == outID {
+		if mask == MaskBoth {
+			return 1
+		}
+		return 0
+	}
 
-// 	if start == "out" {
-// 		return 0
-// 	}
+	totalPaths := 0
+	for _, v := range graph[u] {
+		newMask := mask
+		if v == dacID { newMask |= MaskDAC }
+		if v == fftID { newMask |= MaskFFT }
 
-// 	visited[start] = true
+		totalPaths += countPaths(v, newMask, graph, outID, dacID, fftID)
+	}
 
-// 	if neighbours, ok := paths[start]; ok {
-// 		for _, neigh := range neighbours {
-// 			if !visited[neigh] {
-// 				newDac := dacStatus || (neigh == "dac")
-// 				newFft := fftStatus || (neigh == "fft")
-// 				numPath += dfs2(neigh, paths, visited, newDac, newFft)
-// 			}
-// 		}
-// 	}
+	memo[u][mask] = totalPaths
+	return totalPaths
+}
 
-// 	visited[start] = false
-// 	memo[stateKey] = numPath
+func solvePart2(file *os.File) int {
+	strToID = make(map[string]int)
+	nextID = 0
+	
+	tempPaths := make(map[int][]int)
+	scanner := bufio.NewScanner(file)
 
-// 	return numPath
-// }
+	for scanner.Scan() {
+		line := scanner.Text()
+		parts := strings.Split(line, ":")
+		if len(parts) < 2 { continue }
 
+		u := getID(strings.TrimSpace(parts[0]))
+		vals := strings.Fields(parts[1])
+		
+		for _, vStr := range vals {
+			v := getID(vStr)
+			tempPaths[u] = append(tempPaths[u], v)
+		}
+	}
+
+	numNodes := nextID
+	graph := make([][]int, numNodes)
+	for u, neighbors := range tempPaths {
+		graph[u] = neighbors
+	}
+
+	if _, ok := strToID["svr"]; !ok { return 0 }
+	
+	svrID := getID("svr")
+	outID := getID("out")
+	dacID := getID("dac")
+	fftID := getID("fft")
+
+	memo = make([][]int, numNodes)
+	for i := range memo {
+		memo[i] = []int{-1, -1, -1, -1}
+	}
+
+	startMask := 0
+	if svrID == dacID { startMask |= MaskDAC }
+	if svrID == fftID { startMask |= MaskFFT }
+
+	return countPaths(svrID, startMask, graph, outID, dacID, fftID)
+}
 
 func main() {
 	file, err := os.Open("data.txt")
-	if err != nil {
-		log.Fatal(err)
+	if err != nil { 
+		log.Fatal(err) 
 	}
 	defer file.Close()
 
-	// answer1 := solvePart1(file)
-	// fmt.Println("Answer 1:", answer1)
-
-	// _, err = file.Seek(0, 0)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	fmt.Println("Answer 2:", solvePart2(file))
 }
